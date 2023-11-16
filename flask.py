@@ -1,7 +1,9 @@
-import streamlit as st
+from flask import Flask, render_template, request
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+
+app = Flask(__name__)
 
 # Load your dataset and preprocess 'Label' as you mentioned before
 df = pd.read_csv('data.csv')
@@ -20,28 +22,17 @@ X_tfidf = vectorizer.fit_transform(X)
 logreg_classifier = LogisticRegression(random_state=17)
 logreg_classifier.fit(X_tfidf, y)
 
-# Function to predict if a text is real or fake
-def predict_text(label_text):
-    # Vectorize the input text using the same vectorizer
-    text_tfidf = vectorizer.transform([label_text])
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    # Make a prediction
+@app.route('/predict', methods=['POST'])
+def predict():
+    user_input = request.form['input_text']
+    text_tfidf = vectorizer.transform([user_input])
     prediction = logreg_classifier.predict(text_tfidf)
+    result = "REAL" if prediction[0] == 1 else "FAKE"
+    return render_template('result.html', result=result)
 
-    # Return the prediction
-    return "REAL" if prediction[0] == 1 else "FAKE"
-
-# Streamlit app
-def main():
-    st.title("Fake News Detection")
-
-    # User input text
-    user_input = st.text_area("Enter a text:", "This is a sample text.")
-
-    # Make prediction on button click
-    if st.button("Predict"):
-        result = predict_text(user_input)
-        st.success(f"The model predicts: {result}")
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(debug=True)
